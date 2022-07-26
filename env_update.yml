@@ -1,0 +1,24 @@
+---
+- hosts: localhost
+  gather_facts: no
+  collections:
+    - netapp.ontap
+  vars:
+    env: "{{ env }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: "{{ https }}"
+    validate_certs: "{{ certs }}"
+  tasks:
+  - name: Update Snapmirror
+    na_ontap_snapmirror:
+      state: present
+      update: true
+      source_path: "{{ item.src_svm }}:{{ item.src_volume }}"
+      destination_path: "{{ item.dst_svm }}:{{ item.dst_volume }}"
+      <<: *login
+      hostname: "{{ item.dst_cluster }}"
+    loop: "{{ sm_list }}"
+    loop_control:
+      label: "{{ item.src_svm }}:{{ item.src_volume }} ---> {{ item.dst_svm }}:{{ item.dst_volume }} --- updating"
