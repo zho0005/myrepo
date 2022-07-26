@@ -1,0 +1,13 @@
+south:
+  cluster: "cal-q9-cl08"
+  volume_list:
+    - { svm: ccprdsfs-xenvfile, volume: tests_app1 }
+    - { svm: ccprdsfs-xenvfile, volume: tests_app2 }
+    - { svm: ccprdsfs-xenvfile, volume: tests_app3 }
+
+north:
+  cluster: "edm-edc1-cl09"
+  volume_list:
+    - { svm: ccprdnfs-xenvfile, volume: testn_app1 }
+    - { svm: ccprdnfs-xenvfile, volume: testn_app2 }
+    - { svm: ccprdnfs-xenvfile, volume: testn_app3 }

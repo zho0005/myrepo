@@ -1,0 +1,9 @@
+south:
+  cluster: "cal-q9-cl08"
+  volume_list:
+    - { svm: ccnpsfs-appsup, volume: tsts_boefiles }
+
+north:
+  cluster: "edm-edc1-cl09"
+  volume_list:
+    - { svm: ccnpnfs-appsup, volume: tstn_boefiles }
