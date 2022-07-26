@@ -1,9 +1,0 @@
-south:
-  cluster: "cal-q9-cl08"
-  volume_list:
-    - { svm: ccprdsfs-cisdat, volume: prds_sro }
-
-north:
-  cluster: "edm-edc1-cl09"
-  volume_list:
-    - { svm: ccprdnfs-cisdat, volume: prdn_sro }
