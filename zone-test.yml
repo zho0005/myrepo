@@ -1,0 +1,7 @@
+north:
+  cluster: "uxisilonf-mgt"
+  policy: "zone-test_North-South"
+south:
+  cluster: "uxisilong-mgt"
+  policy: "zone-test_North-South_mirror"
+
