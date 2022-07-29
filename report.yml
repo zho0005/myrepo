@@ -3,8 +3,6 @@
   gather_facts: no
   collections:
     - dellemc.powerscale
-  vars_files:
-    - login.yml
   vars:
     api_user: "{{ username }}"
     api_password: "{{ password }}"
