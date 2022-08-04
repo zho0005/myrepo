@@ -3,24 +3,24 @@
   gather_facts: no
   collections:
     - netapp.ontap
-  tasks:
 
-  - name: Update Snapmirror
+  tasks:
+  - name: Break Snapmirror Relationship
     na_ontap_snapmirror:
-      state: present
-      update: true
-      source_path: "{{ item.src_svm }}:{{ item.src_volume }}"
-      destination_path: "{{ item.dst_svm }}:{{ item.dst_volume }}"
       hostname: "{{ item.dst_cluster }}"
       username: "{{ netapp_username }}"
       password: "{{ netapp_password }}"
       https: true
       validate_certs: false
+      state: present
+      relationship_state: broken
+      source_path: "{{ item.src_svm }}:{{ item.src_volume }}"
+      destination_path: "{{ item.dst_svm }}:{{ item.dst_volume }}"
     loop: "{{ sm_list }}"
     loop_control:
-      label: "{{ item.src_svm }}:{{ item.src_volume }} ---> {{ item.dst_svm }}:{{ item.dst_volume }} --- updating"
+      label: "{{ item.src_svm }}:{{ item.src_volume }} ---> {{ item.dst_svm }}:{{ item.dst_volume }}  --- breaking"
 
-  - name: Check Snapmirror State
+  - name: Check Snapmirror Break State
     na_ontap_info:
       gather_subset: snapmirror_info
       hostname: "{{ item.dst_cluster }}"
@@ -29,10 +29,11 @@
       https: true
       validate_certs: false
     register: sm_status
-    until: sm_status.ontap_info.snapmirror_info[item.dst_svm+":"+item.dst_volume].relationship_status == "idle"
+    until: sm_status.ontap_info.snapmirror_info[item.dst_svm+":"+item.dst_volume].mirror_state == "broken-off"
     delay: 10
     retries: 60
     loop: "{{ sm_list }}"
     loop_control:
-      label: "{{ item.src_svm }}:{{ item.src_volume }} ---> {{ item.dst_svm }}:{{ item.dst_volume }}  --- Idle"
+      label: "{{ item.src_svm }}:{{ item.src_volume }} -x-> {{ item.dst_svm }}:{{ item.dst_volume }}  --- Broken-off"
+
 

@@ -1,0 +1,41 @@
+---
+- hosts: localhost
+  gather_facts: no
+  collections:
+    - netapp.ontap
+
+  tasks:
+  - name: Create Snapmirror Reverse Relationship
+    na_ontap_snapmirror:
+      hostname: "{{ item.src_cluster }}"
+      username: "{{ netapp_username }}"
+      password: "{{ netapp_password }}"
+      https: true
+      validate_certs: false
+      state: present
+      initialize: False
+      source_path: "{{ item.dst_svm }}:{{ item.dst_volume }}"
+      destination_path: "{{ item.src_svm }}:{{ item.src_volume }}"
+      schedule: "{{ item.schedule }}"
+      policy: "{{ item.policy }}"
+      relationship_type: "{{ item.type }}"
+    loop: "{{ sm_list }}"
+    loop_control:
+      label: "{{ item.src_svm }}:{{ item.src_volume }} <-x- {{ item.dst_svm }}:{{ item.dst_volume }}  --- reversing"
+
+  - name: Check Snapmirror Reverse State
+    na_ontap_info:
+      gather_subset: snapmirror_info
+      hostname: "{{ item.src_cluster }}"
+      username: "{{ netapp_username }}"
+      password: "{{ netapp_password }}"
+      https: true
+      validate_certs: false
+    register: sm_status
+    until: sm_status.ontap_info.snapmirror_info[item.src_svm+":"+item.src_volume].mirror_state == "broken-off"
+    delay: 10
+    retries: 60
+    loop: "{{ sm_list }}"
+    loop_control:
+      label: "{{ item.src_svm }}:{{ item.src_volume }} <-x- {{ item.dst_svm }}:{{ item.dst_volume }}  --- Broken-off"
+

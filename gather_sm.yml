@@ -66,3 +66,11 @@
     when:
       - north_info.ontap_info.volume_info[item.volume+":"+item.svm].volume_id_attributes.type == "dp"
 
+  - debug:
+      msg: "volume{{ my_idx|int +1 }} - {{ item.src_svm }}:{{ item.src_volume }} ---> {{ item.dst_svm }}:{{ item.dst_volume
+}}"
+    with_items: "{{ sm_list }}"
+    loop_control:
+      label: "{{ item.src_cluster }} ---> {{ item.dst_cluster }}"
+      index_var: my_idx
+

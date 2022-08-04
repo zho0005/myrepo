@@ -1,0 +1,41 @@
+---
+- hosts: localhost
+  gather_facts: no
+  collections:
+    - netapp.ontap
+
+  tasks:
+  - name: Quiesce Snapmirror Relationship
+    na_ontap_command:
+      hostname: "{{ item.dst_cluster }}"
+      username: "{{ netapp_username }}"
+      password: "{{ netapp_password }}"
+      https: true
+      validate_certs: false
+      command: "snapmirror quiesce -destination-path {{ item.dst_svm }}:{{ item.dst_volume }}"
+      include_lines: '{{ item.dst_svm }}:{{ item.dst_volume }}'
+      return_dict: true
+    register: result
+    until: result.msg.stdout_lines_filter | reject('search','^Operation succeeded:') | list | count == 0
+    delay: 10
+    retries: 60
+    loop: "{{ sm_list }}"
+    loop_control:
+      label: "{{ item.src_svm }}:{{ item.src_volume }} ---> {{ item.dst_svm }}:{{ item.dst_volume }}  --- quiescing"
+
+  - name: Check Snapmirror Quiesced State
+    na_ontap_info:
+      gather_subset: snapmirror_info
+      hostname: "{{ item.dst_cluster }}"
+      username: "{{ netapp_username }}"
+      password: "{{ netapp_password }}"
+      https: true
+      validate_certs: false
+    register: sm_status
+    until: sm_status.ontap_info.snapmirror_info[item.dst_svm+":"+item.dst_volume].relationship_status == "quiesced"
+    delay: 10
+    retries: 60
+    loop: "{{ sm_list }}"
+    loop_control:
+      label: "{{ item.src_svm }}:{{ item.src_volume }} ---> {{ item.dst_svm }}:{{ item.dst_volume }}  --- Quiesced"
+
