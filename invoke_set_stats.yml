@@ -37,7 +37,8 @@
     register: south_info
 
   - set_stats:
-      sm_list: "{{ sm_list|default([]) + [{ \
+      data:
+        sm_list: "{{ sm_list|default([]) + [{ \
                   'dst_cluster':south.cluster,'src_cluster':north.cluster,\
                   'dst_svm':item.svm,'dst_volume':item.volume,\
                   'src_svm':south_info.ontap_info.snapmirror_info[':'.join([item.svm,item.volume])].source_vserver,\
@@ -51,8 +52,8 @@
       - south_info.ontap_info.volume_info[item.volume+":"+item.svm].volume_id_attributes.type == "dp"
 
   - set_stats:
-      #dst: "{{ dst|default([])+[{'cluster':north.cluster,'svm':item.svm,'volume':item.volume}] }}"
-      sm_list: "{{ sm_list|default([]) + [{ \
+      data:
+        sm_list: "{{ sm_list|default([]) + [{ \
                   'dst_cluster':north.cluster,'src_cluster':south.cluster,\
                   'dst_svm':item.svm,'dst_volume':item.volume,\
                   'src_svm':north_info.ontap_info.snapmirror_info[':'.join([item.svm,item.volume])].source_vserver,\
