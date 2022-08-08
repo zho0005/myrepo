@@ -1,0 +1,138 @@
+---
+- hosts: localhost
+  gather_facts: no
+  collections:
+    - dellemc.powerscale
+  vars:
+    env: "{{ env }}"
+    api_user: "{{ username }}"
+    api_password: "{{ password }}"
+    verify_ssl: "{{ certs }}"
+
+  name: DR workflow
+  tasks:
+  - name: include variables
+    include_vars: "zone-{{ env|lower }}.yml"
+
+  - name: Get North SyncIQ policy
+    register: north_info
+    synciqpolicy:
+      onefs_host: "{{ north.cluster }}"
+      policy_name: "{{ north.policy }}"
+      state: "present"
+      api_user: "{{ username }}"
+      api_password: "{{ password }}"
+      verify_ssl: "{{ certs }}"
+
+  - name: Get Southth SyncIQ policy
+    register: south_info
+    synciqpolicy:
+      onefs_host: "{{ south.cluster }}"
+      policy_name: "{{ south.policy }}"
+      state: "present"
+      api_user: "{{ username }}"
+      api_password: "{{ password }}"
+      verify_ssl: "{{ certs }}"
+
+  - set_fact: #Set source and destination cluster information
+      src_cluster: "{{ north.cluster }}"
+      dst_cluster: "{{ south.cluster }}"
+      src_policy:  "{{ north.policy }}"
+      dst_policy:  "{{ south.policy }}"
+    when: (north_info.synciq_policy_details.enabled == true) and (north_info.synciq_policy_details.schedule != "")
+
+  - set_fact: #Set source and destination cluster information
+      src_cluster: "{{ south.cluster }}"
+      dst_cluster: "{{ north.cluster }}"
+      src_policy:  "{{ south.policy }}"
+      dst_policy:  "{{ north.policy }}"
+    when: (south_info.synciq_policy_details.enabled == true) and (south_info.synciq_policy_details.schedule != "")
+
+  - debug:
+      msg: "environment {{ env|lower }} :  {{ src_cluster }} ---> {{ dst_cluster }}"
+
+  - name: Disable source cluster({{src_cluster}}) policy({{src_policy}}) sync schedule
+    synciqpolicy:
+      onefs_host: "{{ src_cluster }}"
+      policy_name: "{{ src_policy }}"
+      run_job: "on-schedule"
+      schedule: ""
+      state: "present"
+      api_user: "{{ username }}"
+      api_password: "{{ password }}"
+      verify_ssl: "{{ certs }}"
+
+  - name: Allow writes on destination cluster({{dst_cluster}})
+    synciqpolicy:
+      onefs_host: "{{ dst_cluster }}"
+      policy_name: "{{ src_policy }}"
+      job_params:
+        action: "allow_write"
+        wait_for_completion: "True"
+      state: "present"
+      api_user: "{{ username }}"
+      api_password: "{{ password }}"
+      verify_ssl: "{{ certs }}"
+
+  - name: Sleep for 60 seconds to make sure destination cluster({{dst_cluster}}) finished writes_enabled
+    wait_for:
+      delay: 60
+      timeout: 0
+
+  - name: Get destination sync target state
+    synciqtargetreports:
+      onefs_host: "{{ dst_cluster }}"
+      name: "{{ src_policy }}"
+      include_sub_reports: "True"
+      state: "present"
+      api_user: "{{ username }}"
+      api_password: "{{ password }}"
+      verify_ssl: "{{ certs }}"
+    register: dst_info
+
+  - name: Enable sync-back to source cluster({{src_cluster}}) with policy({{src_policy}})
+    synciqpolicy:
+      onefs_host: "{{ src_cluster }}"
+      policy_name: "{{ src_policy }}"
+      job_params:
+        action: "resync_prep"
+        wait_for_completion: "True"
+      state: "present"
+      api_user: "{{ username }}"
+      api_password: "{{ password }}"
+      verify_ssl: "{{ certs }}"
+    when: (dst_info.synciq_target_subreport_details.subreports[0].state == "finished") and (dst_info.synciq_target_subreport_details.subreports[0].action == "allow_write")
+
+  - name: Sleep for 60 seconds to make sure source cluster({{src_cluster}}) policy({{src_policy}}) is disabled
+    wait_for:
+      delay: 60
+      timeout: 0
+
+  - name: Make sure source cluster({{src_cluster}}) policy({{src_policy}}) is disabled
+    synciqpolicy:
+      onefs_host: "{{ src_cluster }}"
+      policy_name: "{{ src_policy }}"
+      state: "present"
+      api_user: "{{ username }}"
+      api_password: "{{ password }}"
+      verify_ssl: "{{ certs }}"
+    register:
+      src_info
+
+  - name: Modify destination cluster({{dst_cluster}}) policy({{dst_policy}}), enableing schedule
+    synciqpolicy:
+      onefs_host: "{{ dst_cluster }}"
+      policy_name: "{{ dst_policy }}"
+      enabled: True
+      run_job: "when-source-modified"
+      source_cluster:
+        source_network:
+          pool: "synciq"
+          subnet: "subnet-synciq"
+      target_cluster:
+        target_host: "{{ src_cluster|replace('-mgt','-synciq.healthy.bewell.ca') }}"
+      state: "present"
+      api_user: "{{ username }}"
+      api_password: "{{ password }}"
+      verify_ssl: "{{ certs }}"
+    when: src_info.synciq_policy_details.enabled == false
