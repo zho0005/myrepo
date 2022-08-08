@@ -21,7 +21,7 @@
       policy_name: "{{ north.policy }}"
       state: "present"
       api_user: "{{ isilon_username }}"
-      api_password: "{{ password }}"
+      api_password: "{{ isilon_password }}"
       verify_ssl: false
 
   - name: Get Southth SyncIQ policy
