@@ -20,9 +20,9 @@
       onefs_host: "{{ north.cluster }}"
       policy_name: "{{ north.policy }}"
       state: "present"
-      api_user: "{{ username }}"
+      api_user: "{{ isilon_username }}"
       api_password: "{{ password }}"
-      verify_ssl: "{{ certs }}"
+      verify_ssl: false
 
   - name: Get Southth SyncIQ policy
     register: south_info
@@ -30,9 +30,9 @@
       onefs_host: "{{ south.cluster }}"
       policy_name: "{{ south.policy }}"
       state: "present"
-      api_user: "{{ username }}"
-      api_password: "{{ password }}"
-      verify_ssl: "{{ certs }}"
+      api_user: "{{ isilon_username }}"
+      api_password: "{{ isilon_password }}"
+      verify_ssl: false
 
   - set_fact: #Set source and destination cluster information
       src_cluster: "{{ north.cluster }}"
@@ -58,9 +58,9 @@
       run_job: "on-schedule"
       schedule: ""
       state: "present"
-      api_user: "{{ username }}"
-      api_password: "{{ password }}"
-      verify_ssl: "{{ certs }}"
+      api_user: "{{ isilon_username }}"
+      api_password: "{{ isilon_password }}"
+      verify_ssl: false
 
   - name: Allow writes on destination cluster({{dst_cluster}})
     synciqpolicy:
@@ -70,9 +70,9 @@
         action: "allow_write"
         wait_for_completion: "True"
       state: "present"
-      api_user: "{{ username }}"
-      api_password: "{{ password }}"
-      verify_ssl: "{{ certs }}"
+      api_user: "{{ isilon_username }}"
+      api_password: "{{ isilon_password }}"
+      verify_ssl: false
 
   - name: Sleep for 60 seconds to make sure destination cluster({{dst_cluster}}) finished writes_enabled
     wait_for:
@@ -85,9 +85,9 @@
       name: "{{ src_policy }}"
       include_sub_reports: "True"
       state: "present"
-      api_user: "{{ username }}"
-      api_password: "{{ password }}"
-      verify_ssl: "{{ certs }}"
+      api_user: "{{ isilon_username }}"
+      api_password: "{{ isilon_password }}"
+      verify_ssl: false
     register: dst_info
 
   - name: Enable sync-back to source cluster({{src_cluster}}) with policy({{src_policy}})
@@ -98,9 +98,9 @@
         action: "resync_prep"
         wait_for_completion: "True"
       state: "present"
-      api_user: "{{ username }}"
-      api_password: "{{ password }}"
-      verify_ssl: "{{ certs }}"
+      api_user: "{{ isilon_username }}"
+      api_password: "{{ isilon_password }}"
+      verify_ssl: false
     when: (dst_info.synciq_target_subreport_details.subreports[0].state == "finished") and (dst_info.synciq_target_subreport_details.subreports[0].action == "allow_write")
 
   - name: Sleep for 60 seconds to make sure source cluster({{src_cluster}}) policy({{src_policy}}) is disabled
@@ -113,9 +113,9 @@
       onefs_host: "{{ src_cluster }}"
       policy_name: "{{ src_policy }}"
       state: "present"
-      api_user: "{{ username }}"
-      api_password: "{{ password }}"
-      verify_ssl: "{{ certs }}"
+      api_user: "{{ isilon_username }}"
+      api_password: "{{ isilon_password }}"
+      verify_ssl: false
     register:
       src_info
 
@@ -132,7 +132,7 @@
       target_cluster:
         target_host: "{{ src_cluster|replace('-mgt','-synciq.healthy.bewell.ca') }}"
       state: "present"
-      api_user: "{{ username }}"
-      api_password: "{{ password }}"
-      verify_ssl: "{{ certs }}"
+      api_user: "{{ isilon_username }}"
+      api_password: "{{ isilon_password }}"
+      verify_ssl: false
     when: src_info.synciq_policy_details.enabled == false
